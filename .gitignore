@@ -58,3 +58,6 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+########## this project ignores ############
+/[Aa]ssets/Plugins/UniRx
+/[Aa]ssets/unity-chan!
