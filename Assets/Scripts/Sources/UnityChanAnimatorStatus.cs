@@ -2,7 +2,7 @@
 
 namespace UnityChan.Rx
 {
-    enum UnityChanAnimatorState
+    public enum UnityChanAnimatorState
     {
         Idle,
         Locomotion,
@@ -10,9 +10,9 @@ namespace UnityChan.Rx
         Rest
     }
 
-    struct UnityChanAnimatorStatus : IAnimatorStatus<UnityChanAnimatorState>
+    public class UnityChanAnimatorStatus : IAnimatorStatus<UnityChanAnimatorState>
     {
-        UnityChanAnimatorState state;
+        UnityChanAnimatorState state = UnityChanAnimatorState.Idle;
 
         static int idleState = Animator.StringToHash("Base Layer.Idle");
         static int locoState = Animator.StringToHash("Base Layer.Locomotion");
