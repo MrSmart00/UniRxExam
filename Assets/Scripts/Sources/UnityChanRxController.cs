@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Zenject;
 
 namespace UnityChan.Rx
 {
@@ -46,6 +47,7 @@ namespace UnityChan.Rx
 		static int jumpState = Animator.StringToHash("Base Layer.Jump");
 		static int restState = Animator.StringToHash("Base Layer.Rest");
 
+        [Inject]
 		public ICharacterMover mover;
 
 		// 初期化
@@ -67,8 +69,8 @@ namespace UnityChan.Rx
 		// 以下、メイン処理.リジッドボディと絡めるので、FixedUpdate内で処理を行う.
 		void FixedUpdate()
 		{
-			float h = Input.GetAxis("Horizontal");              // 入力デバイスの水平軸をhで定義
-			float v = Input.GetAxis("Vertical");                // 入力デバイスの垂直軸をvで定義
+			float h = mover.HorizontalAxis();              // 入力デバイスの水平軸をhで定義
+			float v = mover.VerticalAxis();                // 入力デバイスの垂直軸をvで定義
 			anim.SetFloat("Speed", v);                          // Animator側で設定している"Speed"パラメタにvを渡す
 			anim.SetFloat("Direction", h);                      // Animator側で設定している"Direction"パラメタにhを渡す
 			anim.speed = animSpeed;                             // Animatorのモーション再生速度に animSpeedを設定する
@@ -91,7 +93,7 @@ namespace UnityChan.Rx
 				velocity *= backwardSpeed;  // 移動速度を掛ける
 			}
 
-			if (Input.GetButtonDown("Jump"))
+			if (mover.IsJumping())
 			{   // スペースキーを入力したら
 
 				//アニメーションのステートがLocomotionの最中のみジャンプできる
@@ -178,7 +180,7 @@ namespace UnityChan.Rx
 					resetCollider();
 				}
 				// スペースキーを入力したらRest状態になる
-				if (Input.GetButtonDown("Jump"))
+				if (mover.IsJumping())
 				{
 					anim.SetBool("Rest", true);
 				}
