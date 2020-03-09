@@ -2,5 +2,5 @@
 {
     float HorizontalAxis();
     float VerticalAxis();
-    bool IsJumping();
+    bool GetJump();
 }

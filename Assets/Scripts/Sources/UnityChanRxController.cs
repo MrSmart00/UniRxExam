@@ -41,14 +41,11 @@ namespace UnityChan.Rx
 
 		private GameObject cameraObject;    // メインカメラへの参照
 
-		// アニメーター各ステートへの参照
-		static int idleState = Animator.StringToHash("Base Layer.Idle");
-		static int locoState = Animator.StringToHash("Base Layer.Locomotion");
-		static int jumpState = Animator.StringToHash("Base Layer.Jump");
-		static int restState = Animator.StringToHash("Base Layer.Rest");
-
         [Inject]
 		public ICharacterMover mover;
+
+		[Inject]
+		public IAnimatorStatus<UnityChanAnimatorState> status;
 
 		// 初期化
 		void Start()
@@ -93,11 +90,16 @@ namespace UnityChan.Rx
 				velocity *= backwardSpeed;  // 移動速度を掛ける
 			}
 
-			if (mover.IsJumping())
+
+			status.Update(currentBaseState.fullPathHash);
+
+
+
+			if (mover.GetJump())
 			{   // スペースキーを入力したら
 
 				//アニメーションのステートがLocomotionの最中のみジャンプできる
-				if (currentBaseState.nameHash == locoState)
+				if (status.CurrentState() == UnityChanAnimatorState.Locomotion)
 				{
 					//ステート遷移中でなかったらジャンプできる
 					if (!anim.IsInTransition(0))
@@ -119,7 +121,7 @@ namespace UnityChan.Rx
 			// 以下、Animatorの各ステート中での処理
 			// Locomotion中
 			// 現在のベースレイヤーがlocoStateの時
-			if (currentBaseState.nameHash == locoState)
+			if (status.CurrentState() == UnityChanAnimatorState.Locomotion)
 			{
 				//カーブでコライダ調整をしている時は、念のためにリセットする
 				if (useCurves)
@@ -129,7 +131,7 @@ namespace UnityChan.Rx
 			}
 			// JUMP中の処理
 			// 現在のベースレイヤーがjumpStateの時
-			else if (currentBaseState.nameHash == jumpState)
+			else if (status.CurrentState() == UnityChanAnimatorState.Jump)
 			{
 				//cameraObject.SendMessage("setCameraPositionJumpView");  // ジャンプ中のカメラに変更
 				//														// ステートがトランジション中でない場合
@@ -172,7 +174,7 @@ namespace UnityChan.Rx
 			}
 			// IDLE中の処理
 			// 現在のベースレイヤーがidleStateの時
-			else if (currentBaseState.nameHash == idleState)
+			else if (status.CurrentState() == UnityChanAnimatorState.Idle)
 			{
 				//カーブでコライダ調整をしている時は、念のためにリセットする
 				if (useCurves)
@@ -180,14 +182,14 @@ namespace UnityChan.Rx
 					resetCollider();
 				}
 				// スペースキーを入力したらRest状態になる
-				if (mover.IsJumping())
+				if (mover.GetJump())
 				{
 					anim.SetBool("Rest", true);
 				}
 			}
 			// REST中の処理
 			// 現在のベースレイヤーがrestStateの時
-			else if (currentBaseState.nameHash == restState)
+			else if (status.CurrentState() == UnityChanAnimatorState.Rest)
 			{
 				//cameraObject.SendMessage("setCameraPositionFrontView");		// カメラを正面に切り替える
 				// ステートが遷移中でない場合、Rest bool値をリセットする（ループしないようにする）

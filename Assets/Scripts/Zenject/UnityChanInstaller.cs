@@ -10,6 +10,10 @@ namespace UnityChan.Rx.Zenject
                 .Bind<ICharacterMover>()
                 .To<UnityChanMover>()
                 .AsTransient();
+            Container
+                .Bind<IAnimatorStatus<UnityChanAnimatorState>>()
+                .To<UnityChanAnimatorStatus>()
+                .AsTransient();
         }
     }
 }

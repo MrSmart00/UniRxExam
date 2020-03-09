@@ -9,7 +9,7 @@ namespace UnityChan.Rx
             return Input.GetAxis("Horizontal");
         }
 
-        public bool IsJumping()
+        public bool GetJump()
         {
             return Input.GetButtonDown("Jump");
         }
