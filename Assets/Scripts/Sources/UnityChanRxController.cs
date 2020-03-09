@@ -46,6 +46,8 @@ namespace UnityChan.Rx
 		static int jumpState = Animator.StringToHash("Base Layer.Jump");
 		static int restState = Animator.StringToHash("Base Layer.Rest");
 
+		public ICharacterMover mover;
+
 		// 初期化
 		void Start()
 		{

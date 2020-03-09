@@ -60,4 +60,5 @@ crashlytics-build.properties
 
 ########## this project ignores ############
 /[Aa]ssets/Plugins/UniRx
+/[Aa]ssets/Plugins/Zenject
 /[Aa]ssets/unity-chan!
