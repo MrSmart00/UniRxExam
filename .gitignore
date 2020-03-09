@@ -59,6 +59,8 @@ sysinfo.txt
 crashlytics-build.properties
 
 ########## this project ignores ############
+mono_crash.*.json
+
 /[Aa]ssets/Plugins/UniRx
 /[Aa]ssets/Plugins/Zenject
 /[Aa]ssets/unity-chan!
