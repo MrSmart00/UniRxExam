@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Zenject;
+using UniRx;
+using UniRx.Triggers;
 
 namespace UnityChan.Rx
 {
@@ -47,11 +49,25 @@ namespace UnityChan.Rx
 		[Inject]
 		public IAnimatorStatus<UnityChanAnimatorState> status;
 
+        [Inject]
+		private IUnityChanViewModel<UnityChanAnimatorState, UnityChanRxViewModelContext> viewModel;
+
 		// 初期化
 		void Start()
 		{
+			viewModel.inject(
+                new UnityChanRxViewModelContext(
+                    forwardSpeed: forwardSpeed,
+                    backwardSpeed: backwardSpeed,
+                    rotateSpeed: rotateSpeed,
+                    transform: transform
+                    )
+                );
+
 			// Animatorコンポーネントを取得する
 			anim = GetComponent<Animator>();
+			anim.speed = animSpeed;                             // Animatorのモーション再生速度に animSpeedを設定する
+
 			// CapsuleColliderコンポーネントを取得する（カプセル型コリジョン）
 			col = GetComponent<CapsuleCollider>();
 			rb = GetComponent<Rigidbody>();
@@ -60,7 +76,25 @@ namespace UnityChan.Rx
 			// CapsuleColliderコンポーネントのHeight、Centerの初期値を保存する
 			orgColHight = col.height;
 			orgVectColCenter = col.center;
-		}
+
+			var input = new UnityChanViewModelInput(
+                update: this.FixedUpdateAsObservable(),
+                stateInfo: anim.GetBehaviour<ObservableStateMachineTrigger>().OnStateUpdateAsObservable());
+			var output = viewModel.transform(input: input);
+
+			output
+				.state
+				.Subscribe(state =>
+				{
+
+				});
+            output
+                .move
+                .Subscribe(vector =>
+                {
+                    
+                });
+        }
 
 
 		// 以下、メイン処理.リジッドボディと絡めるので、FixedUpdate内で処理を行う.
@@ -70,9 +104,6 @@ namespace UnityChan.Rx
 			float v = mover.VerticalAxis();                // 入力デバイスの垂直軸をvで定義
 			anim.SetFloat("Speed", v);                          // Animator側で設定している"Speed"パラメタにvを渡す
 			anim.SetFloat("Direction", h);                      // Animator側で設定している"Direction"パラメタにhを渡す
-			anim.speed = animSpeed;                             // Animatorのモーション再生速度に animSpeedを設定する
-			currentBaseState = anim.GetCurrentAnimatorStateInfo(0); // 参照用のステート変数にBase Layer (0)の現在のステートを設定する
-			rb.useGravity = true;//ジャンプ中に重力を切るので、それ以外は重力の影響を受けるようにする
 
 
 
@@ -91,7 +122,10 @@ namespace UnityChan.Rx
 			}
 
 
-			status.Update(currentBaseState.fullPathHash);
+
+			currentBaseState = anim.GetCurrentAnimatorStateInfo(0); // 参照用のステート変数にBase Layer (0)の現在のステートを設定する
+			rb.useGravity = true;//ジャンプ中に重力を切るので、それ以外は重力の影響を受けるようにする
+			status.update(currentBaseState.fullPathHash);
 
 
 
@@ -99,7 +133,7 @@ namespace UnityChan.Rx
 			{   // スペースキーを入力したら
 
 				//アニメーションのステートがLocomotionの最中のみジャンプできる
-				if (status.CurrentState() == UnityChanAnimatorState.Locomotion)
+				if (status.currentState == UnityChanAnimatorState.Locomotion)
 				{
 					//ステート遷移中でなかったらジャンプできる
 					if (!anim.IsInTransition(0))
@@ -121,7 +155,7 @@ namespace UnityChan.Rx
 			// 以下、Animatorの各ステート中での処理
 			// Locomotion中
 			// 現在のベースレイヤーがlocoStateの時
-			if (status.CurrentState() == UnityChanAnimatorState.Locomotion)
+			if (status.currentState == UnityChanAnimatorState.Locomotion)
 			{
 				//カーブでコライダ調整をしている時は、念のためにリセットする
 				if (useCurves)
@@ -131,7 +165,7 @@ namespace UnityChan.Rx
 			}
 			// JUMP中の処理
 			// 現在のベースレイヤーがjumpStateの時
-			else if (status.CurrentState() == UnityChanAnimatorState.Jump)
+			else if (status.currentState == UnityChanAnimatorState.Jump)
 			{
 				//cameraObject.SendMessage("setCameraPositionJumpView");  // ジャンプ中のカメラに変更
 				//														// ステートがトランジション中でない場合
@@ -174,7 +208,7 @@ namespace UnityChan.Rx
 			}
 			// IDLE中の処理
 			// 現在のベースレイヤーがidleStateの時
-			else if (status.CurrentState() == UnityChanAnimatorState.Idle)
+			else if (status.currentState == UnityChanAnimatorState.Idle)
 			{
 				//カーブでコライダ調整をしている時は、念のためにリセットする
 				if (useCurves)
@@ -189,7 +223,7 @@ namespace UnityChan.Rx
 			}
 			// REST中の処理
 			// 現在のベースレイヤーがrestStateの時
-			else if (status.CurrentState() == UnityChanAnimatorState.Rest)
+			else if (status.currentState == UnityChanAnimatorState.Rest)
 			{
 				//cameraObject.SendMessage("setCameraPositionFrontView");		// カメラを正面に切り替える
 				// ステートが遷移中でない場合、Rest bool値をリセットする（ループしないようにする）

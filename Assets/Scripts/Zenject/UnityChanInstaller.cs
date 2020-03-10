@@ -14,6 +14,15 @@ namespace UnityChan.Rx.Zenject
                 .Bind<IAnimatorStatus<UnityChanAnimatorState>>()
                 .To<UnityChanAnimatorStatus>()
                 .AsTransient();
+            Container
+                .Bind<IDeltaTime>()
+                .To<DeltaTime>()
+                .AsTransient();
+
+            Container
+                .Bind<IUnityChanViewModel<UnityChanAnimatorState, UnityChanRxViewModelContext>>()
+                .To<UnityChanRxViewModel>()
+                .AsTransient();
         }
     }
 }
