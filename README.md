@@ -12,3 +12,14 @@
 | Zenject | 9.1.0 | [Unity Asset Store](https://assetstore.unity.com/packages/tools/utilities/extenject-dependency-injection-ioc-157735), [Github](https://github.com/modesttree/Zenject) |
 | "Unity-Chan!" Model | 1.2.1 | [Unity Asset Store](https://assetstore.unity.com/packages/3d/characters/unity-chan-model-18705), [Original Site](https://unity-chan.com/) |
 
+## Usage
+
+### Fix build error on AutoBlink.cs
+1. Open `AutoBlink` script in Unity-chan! Model
+2. Delete `using System.Security.Policy;`
+
+### Attach StateMachine
+1. Open `unity-chan! > Unity-chan! Model > Art > Animations > Animators > UnityChanLocomotions`
+2. Select `Base Layer`
+3. Attach `ObservableStateMachineTrigger` scrpit with Add Behaviour
+
