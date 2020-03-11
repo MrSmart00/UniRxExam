@@ -18,10 +18,10 @@ public struct UnityChanViewModelInput
 public struct UnityChanViweModelOutput<State> where State : Enum
 {
     public IObservable<State> state;
-    public IObservable<(float speed, float direction, bool isJump)> userInput;
+    public IObservable<(float speed, float direction, bool isJump, bool isRest)> userInput;
     public IObservable<(Vector3 position, Vector3 rotate, Vector3 jump)> move;
 
-    public UnityChanViweModelOutput(IObservable<State> state, IObservable<(float speed, float direction, bool isJump)> userInput, IObservable<(Vector3 position, Vector3 rotate, Vector3 jump)> move)
+    public UnityChanViweModelOutput(IObservable<State> state, IObservable<(float speed, float direction, bool isJump, bool isRest)> userInput, IObservable<(Vector3 position, Vector3 rotate, Vector3 jump)> move)
     {
         this.state = state;
         this.userInput = userInput;

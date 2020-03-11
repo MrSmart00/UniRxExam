@@ -72,7 +72,8 @@ namespace UnityChan.Rx
                 .Select(_ => (
                 speed: mover.GetVerticalAxis(),
                 direction: mover.GetHorizontalAxis(),
-                isJump: _ == UnityChanAnimatorState.Locomotion && mover.GetJump()
+                isJump: _ == UnityChanAnimatorState.Locomotion && mover.GetJump(),
+                isRest: _ == UnityChanAnimatorState.Idle && mover.GetJump()
                 ));
 
             return new UnityChanViweModelOutput<UnityChanAnimatorState>(state: state, userInput: userInput, move: move);
