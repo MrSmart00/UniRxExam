@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UniRx;
-using UniRx.Diagnostics;
 using Zenject;
 
 namespace UnityChan.Rx
@@ -12,13 +11,15 @@ namespace UnityChan.Rx
         public float forwardSpeed;
         public float backwardSpeed;
         public float rotateSpeed;
+        public float jumpPower;
         public Transform transform;
 
-        public UnityChanRxViewModelContext(float forwardSpeed, float backwardSpeed, float rotateSpeed, Transform transform)
+        public UnityChanRxViewModelContext(float forwardSpeed, float backwardSpeed, float rotateSpeed, float jumpPower, Transform transform)
         {
             this.forwardSpeed = forwardSpeed;
             this.backwardSpeed = backwardSpeed;
             this.rotateSpeed = rotateSpeed;
+            this.jumpPower = jumpPower;
             this.transform = transform;
         }
     }
@@ -42,6 +43,7 @@ namespace UnityChan.Rx
                 forwardSpeed: context.forwardSpeed,
                 backwardSpeed: context.backwardSpeed,
                 rotateSpeed: context.rotateSpeed,
+                jumpPower: context.jumpPower,
                 transform: context.transform,
                 deltaTime: deltaTime.delta
                 );
@@ -49,21 +51,31 @@ namespace UnityChan.Rx
 
         public UnityChanViweModelOutput<UnityChanAnimatorState> transform(UnityChanViewModelInput input)
         {
+            var update = input.update.Share();
             var infoWOTransition = Observable
-                .ZipLatest(input.update, input.stateInfo, (_update, _info) => _info)
+                .ZipLatest(update, input.stateInfo, (_update, _info) => _info)
                 .Where(_info => !_info.Animator.IsInTransition(0))
                 .Share();
 
             var state = infoWOTransition
                 .Do(_info => status.update(_info.StateInfo.fullPathHash))
                 .Select(_info => status.currentState)
-                .DistinctUntilChanged()
                 .Share();
 
-            var move = infoWOTransition
-                .Select(_ => model.convertVelocity(horizontal: mover.HorizontalAxis(), vertical: mover.VerticalAxis())).Debug();
+            var move = state
+                .Select(_ => model.convertVelocity(
+                    horizontal: mover.GetHorizontalAxis(),
+                    vertical: mover.GetVerticalAxis(),
+                    isJump: _ == UnityChanAnimatorState.Locomotion && mover.GetJump()));
 
-            return new UnityChanViweModelOutput<UnityChanAnimatorState>(state: state, move: move);
+            var userInput = state
+                .Select(_ => (
+                speed: mover.GetVerticalAxis(),
+                direction: mover.GetHorizontalAxis(),
+                isJump: _ == UnityChanAnimatorState.Locomotion && mover.GetJump()
+                ));
+
+            return new UnityChanViweModelOutput<UnityChanAnimatorState>(state: state, userInput: userInput, move: move);
         }
     }
 }

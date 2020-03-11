@@ -1,6 +1,6 @@
 ﻿public interface ICharacterMover
 {
-    float HorizontalAxis();
-    float VerticalAxis();
+    float GetHorizontalAxis();
+    float GetVerticalAxis();
     bool GetJump();
 }

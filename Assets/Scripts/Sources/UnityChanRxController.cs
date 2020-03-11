@@ -60,6 +60,7 @@ namespace UnityChan.Rx
                     forwardSpeed: forwardSpeed,
                     backwardSpeed: backwardSpeed,
                     rotateSpeed: rotateSpeed,
+                    jumpPower: jumpPower,
                     transform: transform
                     )
                 );
@@ -86,13 +87,29 @@ namespace UnityChan.Rx
 				.state
 				.Subscribe(state =>
 				{
-
+                    
+				});
+			output
+				.userInput
+				.Subscribe(_ =>
+				{
+					anim.SetFloat("Speed", _.speed);
+					anim.SetFloat("Direction", _.direction);
+                    if(_.isJump)
+                    {
+						anim.SetBool("Jump", true);
+                    }
 				});
             output
                 .move
-                .Subscribe(vector =>
+                .Subscribe(_ =>
                 {
-                    
+					transform.localPosition = _.position;
+					transform.Rotate(_.rotate);
+                    if(_.jump != Vector3.zero)
+                    {
+						rb.AddForce(_.jump, ForceMode.VelocityChange);
+                    }
                 });
         }
 
@@ -100,58 +117,11 @@ namespace UnityChan.Rx
 		// 以下、メイン処理.リジッドボディと絡めるので、FixedUpdate内で処理を行う.
 		void FixedUpdate()
 		{
-			float h = mover.HorizontalAxis();              // 入力デバイスの水平軸をhで定義
-			float v = mover.VerticalAxis();                // 入力デバイスの垂直軸をvで定義
-			anim.SetFloat("Speed", v);                          // Animator側で設定している"Speed"パラメタにvを渡す
-			anim.SetFloat("Direction", h);                      // Animator側で設定している"Direction"パラメタにhを渡す
-
-
-
-			// 以下、キャラクターの移動処理
-			velocity = new Vector3(0, 0, v);        // 上下のキー入力からZ軸方向の移動量を取得
-													// キャラクターのローカル空間での方向に変換
-			velocity = transform.TransformDirection(velocity);
-			//以下のvの閾値は、Mecanim側のトランジションと一緒に調整する
-			if (v > 0.1)
-			{
-				velocity *= forwardSpeed;       // 移動速度を掛ける
-			}
-			else if (v < -0.1)
-			{
-				velocity *= backwardSpeed;  // 移動速度を掛ける
-			}
-
-
 
 			currentBaseState = anim.GetCurrentAnimatorStateInfo(0); // 参照用のステート変数にBase Layer (0)の現在のステートを設定する
 			rb.useGravity = true;//ジャンプ中に重力を切るので、それ以外は重力の影響を受けるようにする
 			status.update(currentBaseState.fullPathHash);
-
-
-
-			if (mover.GetJump())
-			{   // スペースキーを入力したら
-
-				//アニメーションのステートがLocomotionの最中のみジャンプできる
-				if (status.currentState == UnityChanAnimatorState.Locomotion)
-				{
-					//ステート遷移中でなかったらジャンプできる
-					if (!anim.IsInTransition(0))
-					{
-						rb.AddForce(Vector3.up * jumpPower, ForceMode.VelocityChange);
-						anim.SetBool("Jump", true);     // Animatorにジャンプに切り替えるフラグを送る
-					}
-				}
-			}
-
-
-			// 上下のキー入力でキャラクターを移動させる
-			transform.localPosition += velocity * Time.fixedDeltaTime;
-
-			// 左右のキー入力でキャラクタをY軸で旋回させる
-			transform.Rotate(0, h * rotateSpeed, 0);
-
-
+ 
 			// 以下、Animatorの各ステート中での処理
 			// Locomotion中
 			// 現在のベースレイヤーがlocoStateの時

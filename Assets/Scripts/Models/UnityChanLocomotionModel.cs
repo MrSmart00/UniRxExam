@@ -7,19 +7,21 @@ namespace UnityChan.Rx
         float forwardSpeed;
         float backwardSpeed;
         float rotateSpeed;
+        float jumpPower;
         Transform transform;
         float deltaTime;
 
-        public UnityChanLocomotionModel(float forwardSpeed, float backwardSpeed, float rotateSpeed, Transform transform, float deltaTime)
+        public UnityChanLocomotionModel(float forwardSpeed, float backwardSpeed, float rotateSpeed, float jumpPower, Transform transform, float deltaTime)
         {
             this.forwardSpeed = forwardSpeed;
             this.backwardSpeed = backwardSpeed;
             this.rotateSpeed = rotateSpeed;
+            this.jumpPower = jumpPower;
             this.transform = transform;
             this.deltaTime = deltaTime;
         }
 
-        public (Vector3 position, Vector3 rotate) convertVelocity(float horizontal, float vertical)
+        public (Vector3 position, Vector3 rotate, Vector3 jump) convertVelocity(float horizontal, float vertical, bool isJump)
         {
             // 上下のキー入力からZ軸方向の移動量を取得
             // キャラクターのローカル空間での方向に変換
@@ -36,7 +38,8 @@ namespace UnityChan.Rx
 
             return (
                 position: transform.localPosition + (velocity * deltaTime),
-                rotate: new Vector3(x: 0, y: horizontal * rotateSpeed, z: 0)
+                rotate: new Vector3(x: 0, y: horizontal * rotateSpeed, z: 0),
+                jump: isJump ? Vector3.up * jumpPower : Vector3.zero
                 );
         }
     }

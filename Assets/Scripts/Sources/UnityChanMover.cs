@@ -4,7 +4,7 @@ namespace UnityChan.Rx
 {
     public class UnityChanMover : ICharacterMover
     {
-        public float HorizontalAxis()
+        public float GetHorizontalAxis()
         {
             return Input.GetAxis("Horizontal");
         }
@@ -14,7 +14,7 @@ namespace UnityChan.Rx
             return Input.GetButtonDown("Jump");
         }
 
-        public float VerticalAxis()
+        public float GetVerticalAxis()
         {
             return Input.GetAxis("Vertical");
         }
