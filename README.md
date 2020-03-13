@@ -17,9 +17,3 @@
 ### Fix build error on AutoBlink.cs
 1. Open `AutoBlink` script in Unity-chan! Model
 2. Delete `using System.Security.Policy;`
-
-### Attach StateMachine
-1. Open `unity-chan! > Unity-chan! Model > Art > Animations > Animators > UnityChanLocomotions`
-2. Select `Base Layer`
-3. Attach `ObservableStateMachineTrigger` scrpit with Add Behaviour
-
