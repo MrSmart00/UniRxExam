@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
 using UniRx;
-using static UniRx.Triggers.ObservableStateMachineTrigger;
 using Zenject;
 
 namespace UnityChan.Rx
@@ -36,14 +34,16 @@ namespace UnityChan.Rx
     public struct ViewModelInput
     {
         public IObservable<Unit> update;
-        public IObservable<OnStateInfo> stateInfo;
+        public IObservable<int> fullPathHash;
+        public IObservable<bool> isInTransition; 
         public IObservable<float> jumpHeight;
         public IObservable<float> gravityControl;
 
-        public ViewModelInput(IObservable<Unit> update, IObservable<OnStateInfo> stateInfo, IObservable<float> jumpHeight, IObservable<float> gravityControl)
+        public ViewModelInput(IObservable<Unit> update, IObservable<int> fullPathHash, IObservable<bool> isInTransition, IObservable<float> jumpHeight, IObservable<float> gravityControl)
         {
             this.update = update;
-            this.stateInfo = stateInfo;
+            this.fullPathHash = fullPathHash;
+            this.isInTransition = isInTransition;
             this.jumpHeight = jumpHeight;
             this.gravityControl = gravityControl;
         }
@@ -98,13 +98,19 @@ namespace UnityChan.Rx
         public ViweModelOutput<UnityChanAnimatorState> transform(ViewModelInput input)
         {
             var update = input.update.Share();
-            var infoWOTransition = Observable
-                .ZipLatest(update, input.stateInfo, (_update, _info) => _info)
-                .Where(_info => !_info.Animator.IsInTransition(0))
+
+            var stateInfo = Observable
+                .CombineLatest(input.fullPathHash, input.isInTransition, (hash, transition) => (hash, transition));
+
+            var infoWOTransition = input
+                .update
+                .WithLatestFrom(stateInfo, (_update, info) => info)
+                .Where(_ => !_.transition)
+                .Select(_ => _.hash)
                 .Share();
 
             var state = infoWOTransition
-                .Do(_info => status.update(_info.StateInfo.fullPathHash))
+                .Do(_ => status.update(_))
                 .Select(_info => status.currentState)
                 .Share();
 

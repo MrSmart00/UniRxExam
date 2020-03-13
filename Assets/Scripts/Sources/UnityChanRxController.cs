@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Zenject;
 using UniRx;
 using UniRx.Triggers;
@@ -31,9 +29,6 @@ namespace UnityChan.Rx
 		// ジャンプ威力
 		public float jumpPower = 3.0f;
 
-		ReactiveProperty<float> jumpHeight;
-		ReactiveProperty<float> gravityControl;
-
         [Inject]
 		private IViewModel<ViewModelContext, ViewModelInput, ViweModelOutput<UnityChanAnimatorState>> viewModel;
 
@@ -45,6 +40,10 @@ namespace UnityChan.Rx
 			var anim = GetComponent<Animator>();
 			anim.speed = animSpeed;                             // Animatorのモーション再生速度に animSpeedを設定する
 			var rb = GetComponent<Rigidbody>();
+
+			ReactiveProperty<float> jumpHeight = new ReactiveProperty<float>(anim.GetFloat("JumpHeight"));
+			ReactiveProperty<float> gravityControl = new ReactiveProperty<float>(anim.GetFloat("GravityControl"));
+			ReactiveProperty<bool> isInTransition = new ReactiveProperty<bool>(anim.IsInTransition(0));
 
 			viewModel.inject(
                 new ViewModelContext(
@@ -60,12 +59,19 @@ namespace UnityChan.Rx
                     )
                 );
 
-			jumpHeight = new ReactiveProperty<float>(anim.GetFloat("JumpHeight"));
-			gravityControl = new ReactiveProperty<float>(anim.GetFloat("GravityControl"));
+			var update = this
+                .FixedUpdateAsObservable()
+                .Do(_ => isInTransition.Value = anim.IsInTransition(0));
+
+			var fullPathHash = anim
+				.GetBehaviour<ObservableStateMachineTrigger>()
+				.OnStateUpdateAsObservable()
+				.Select(_ => _.StateInfo.fullPathHash);
 
 			var input = new ViewModelInput(
-                update: this.FixedUpdateAsObservable(),
-                stateInfo: anim.GetBehaviour<ObservableStateMachineTrigger>().OnStateUpdateAsObservable(),
+                update: update,
+                fullPathHash: fullPathHash,
+                isInTransition: isInTransition,
                 jumpHeight: jumpHeight,
                 gravityControl: gravityControl
                 );
