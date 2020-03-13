@@ -8,15 +8,21 @@ namespace UnityChan.Rx
         float backwardSpeed;
         float rotateSpeed;
         float jumpPower;
+        float jumpThreshold;
+        float colliderOffsetY;
+        float colliderDefaultHeight;
         Transform transform;
         float deltaTime;
 
-        public UnityChanLocomotionModel(float forwardSpeed, float backwardSpeed, float rotateSpeed, float jumpPower, Transform transform, float deltaTime)
+        public UnityChanLocomotionModel(float forwardSpeed, float backwardSpeed, float rotateSpeed, float jumpPower, float jumpThreshold, float colliderOffsetY, float colliderDefaultHeight, Transform transform, float deltaTime)
         {
             this.forwardSpeed = forwardSpeed;
             this.backwardSpeed = backwardSpeed;
             this.rotateSpeed = rotateSpeed;
             this.jumpPower = jumpPower;
+            this.jumpThreshold = jumpThreshold;
+            this.colliderOffsetY = colliderOffsetY;
+            this.colliderDefaultHeight = colliderDefaultHeight;
             this.transform = transform;
             this.deltaTime = deltaTime;
         }
@@ -41,6 +47,34 @@ namespace UnityChan.Rx
                 rotate: new Vector3(x: 0, y: horizontal * rotateSpeed, z: 0),
                 jump: isJump ? Vector3.up * jumpPower : Vector3.zero
                 );
+        }
+
+        public bool needsGravity(float control)
+        {
+            if (control > 0)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        public (float centerY, float height) calculateCurveDelta(float reduce)
+        {
+            // レイキャストをキャラクターのセンターから落とす
+            Ray ray = new Ray(transform.position + Vector3.up, -Vector3.up);
+            RaycastHit hitInfo = new RaycastHit();
+            // 高さが useCurvesHeight 以上ある時のみ、コライダーの高さと中心をJUMP00アニメーションについているカーブで調整する
+            if (Physics.Raycast(ray, out hitInfo) && hitInfo.distance > jumpThreshold)
+            {
+                return (centerY: colliderOffsetY + reduce, height: colliderDefaultHeight - reduce);
+            }
+            else
+            {
+                return (centerY: colliderOffsetY, height: colliderDefaultHeight);
+            }
         }
     }
 }

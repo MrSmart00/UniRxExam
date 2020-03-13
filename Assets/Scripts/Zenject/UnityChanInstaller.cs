@@ -20,7 +20,7 @@ namespace UnityChan.Rx.Zenject
                 .AsTransient();
 
             Container
-                .Bind<IUnityChanViewModel<UnityChanAnimatorState, UnityChanRxViewModelContext>>()
+                .Bind<IViewModel<ViewModelContext, ViewModelInput, ViweModelOutput<UnityChanAnimatorState>>>()
                 .To<UnityChanRxViewModel>()
                 .AsTransient();
         }

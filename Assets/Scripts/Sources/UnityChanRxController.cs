@@ -30,105 +30,71 @@ namespace UnityChan.Rx
 		public float rotateSpeed = 2.0f;
 		// ジャンプ威力
 		public float jumpPower = 3.0f;
-		// キャラクターコントローラ（カプセルコライダ）の参照
-		private CapsuleCollider col;
-		// CapsuleColliderで設定されているコライダのHeiht、Centerの初期値を収める変数
-		private float orgColHight;
-		private Vector3 orgVectColCenter;
+
+		ReactiveProperty<float> jumpHeight;
+		ReactiveProperty<float> gravityControl;
 
         [Inject]
-		private IUnityChanViewModel<UnityChanAnimatorState, UnityChanRxViewModelContext> viewModel;
+		private IViewModel<ViewModelContext, ViewModelInput, ViweModelOutput<UnityChanAnimatorState>> viewModel;
 
 		void Start()
 		{
+			// CapsuleColliderコンポーネントを取得する（カプセル型コリジョン）
+			var col = GetComponent<CapsuleCollider>();
+			// Animatorコンポーネントを取得する
+			var anim = GetComponent<Animator>();
+			anim.speed = animSpeed;                             // Animatorのモーション再生速度に animSpeedを設定する
+			var rb = GetComponent<Rigidbody>();
+
 			viewModel.inject(
-                new UnityChanRxViewModelContext(
+                new ViewModelContext(
                     forwardSpeed: forwardSpeed,
                     backwardSpeed: backwardSpeed,
                     rotateSpeed: rotateSpeed,
                     jumpPower: jumpPower,
-                    transform: transform
+                    transform: transform,
+                    useCurves: useCurves,
+                    useCurvesHeight: useCurvesHeight,
+                    colliderCenterY: col.center.y,
+                    colliderHight: col.height
                     )
                 );
 
-			// Animatorコンポーネントを取得する
-			var anim = GetComponent<Animator>();
-			anim.speed = animSpeed;                             // Animatorのモーション再生速度に animSpeedを設定する
+			jumpHeight = new ReactiveProperty<float>(anim.GetFloat("JumpHeight"));
+			gravityControl = new ReactiveProperty<float>(anim.GetFloat("GravityControl"));
 
-			// CapsuleColliderコンポーネントを取得する（カプセル型コリジョン）
-			col = GetComponent<CapsuleCollider>();
-			var rb = GetComponent<Rigidbody>();
-			// CapsuleColliderコンポーネントのHeight、Centerの初期値を保存する
-			orgColHight = col.height;
-			orgVectColCenter = col.center;
-
-			var input = new UnityChanViewModelInput(
+			var input = new ViewModelInput(
                 update: this.FixedUpdateAsObservable(),
-                stateInfo: anim.GetBehaviour<ObservableStateMachineTrigger>().OnStateUpdateAsObservable());
+                stateInfo: anim.GetBehaviour<ObservableStateMachineTrigger>().OnStateUpdateAsObservable(),
+                jumpHeight: jumpHeight,
+                gravityControl: gravityControl
+                );
+
 			var output = viewModel.transform(input: input);
 
 			output
 				.state
 				.Subscribe(_ =>
 				{
-                    switch(_)
+                    if (_ == UnityChanAnimatorState.Jump && useCurves)
                     {
-						// IDLE中の処理
-						// 現在のベースレイヤーがidleStateの時
-						case UnityChanAnimatorState.Idle:
-							if (useCurves)
-							{
-								resetCollider();
-							}
-							break;
-
-						// Locomotion中
-						// 現在のベースレイヤーがlocoStateの時
-						case UnityChanAnimatorState.Locomotion:
-							if (useCurves)
-							{
-								resetCollider();
-							}
-							break;
-
-						// JUMP中の処理
-						// 現在のベースレイヤーがjumpStateの時
-						case UnityChanAnimatorState.Jump when useCurves:
-							// 以下、カーブ調整をする場合の処理
-							// 以下JUMP00アニメーションについているカーブJumpHeightとGravityControl
-							// JumpHeight:JUMP00でのジャンプの高さ（0〜1）
-							// GravityControl:1⇒ジャンプ中（重力無効）、0⇒重力有効
-							float jumpHeight = anim.GetFloat("JumpHeight");
-							float gravityControl = anim.GetFloat("GravityControl");
-							if (gravityControl > 0)
-								rb.useGravity = false;  //ジャンプ中の重力の影響を切る
-
-							// レイキャストをキャラクターのセンターから落とす
-							Ray ray = new Ray(transform.position + Vector3.up, -Vector3.up);
-							RaycastHit hitInfo = new RaycastHit();
-							// 高さが useCurvesHeight 以上ある時のみ、コライダーの高さと中心をJUMP00アニメーションについているカーブで調整する
-							if (Physics.Raycast(ray, out hitInfo))
-							{
-								if (hitInfo.distance > useCurvesHeight)
-								{
-									col.height = orgColHight - jumpHeight;          // 調整されたコライダーの高さ
-									float adjCenterY = orgVectColCenter.y + jumpHeight;
-									col.center = new Vector3(0, adjCenterY, 0); // 調整されたコライダーのセンター
-								}
-								else
-								{
-									// 閾値よりも低い時には初期値に戻す（念のため）					
-									resetCollider();
-								}
-							}
-							break;
-
-						// REST中の処理
-						// 現在のベースレイヤーがrestStateの時
-						case UnityChanAnimatorState.Rest:
-							break;
-                    }
+						jumpHeight.Value = anim.GetFloat("JumpHeight");
+						gravityControl.Value = anim.GetFloat("GravityControl");
+					}
 				});
+
+			output
+				.needsGravity
+				.Subscribe(_ => rb.useGravity = _);
+
+			output
+				.colliderInfo
+				.Subscribe(_ =>
+				{
+					col.height = _.height;
+					col.center = new Vector3(0, _.centerY, 0);
+				});
+
 			output
 				.userInput
 				.Subscribe(_ =>
@@ -156,19 +122,7 @@ namespace UnityChan.Rx
                     {
 						rb.AddForce(_.jump, ForceMode.VelocityChange);
                     }
-                    else
-                    {
-						rb.useGravity = true;//ジャンプ中に重力を切るので、それ以外は重力の影響を受けるようにする
-					}
 				});
         }
-
-		// キャラクターのコライダーサイズのリセット関数
-		void resetCollider()
-		{
-			// コンポーネントのHeight、Centerの初期値を戻す
-			col.height = orgColHight;
-			col.center = orgVectColCenter;
-		}
 	}
 }
